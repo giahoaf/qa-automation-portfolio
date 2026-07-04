@@ -1,6 +1,28 @@
+# Dependencies
 node_modules/
+
+# Playwright outputs
 playwright-report/
 test-results/
 blob-report/
-.env
+playwright/.cache/
+
+# Playwright MCP session artifacts (AI agent browsing logs)
 .playwright-mcp/
+
+# Secrets & local machine config
+.env
+.env.*
+.claude/settings.local.json
+
+# Learning docs & personal notes (local only, not part of the public repo)
+docs/
+
+# JMeter outputs (roadmap phase 4)
+*.jtl
+jmeter.log
+
+# Editor & OS noise
+.vscode/
+Thumbs.db
+desktop.ini
