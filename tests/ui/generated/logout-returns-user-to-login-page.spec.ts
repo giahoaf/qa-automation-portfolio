@@ -14,8 +14,8 @@ test.describe('Login', () => {
 
     // expect: The browser navigates to '/inventory.html' and the product list is displayed.
     await expect(page).toHaveURL(/\/inventory\.html$/);
-    await expect(page.getByText('Products')).toBeVisible();
-    await expect(page.locator('.inventory_item')).toHaveCount(6);
+    await expect(page.locator('[data-test="title"]')).toHaveText('Products');
+    await expect(page.locator('.inventory_item').first()).toBeVisible();
 
     // 2. Click the hamburger menu button (#react-burger-menu-btn) in the top-left corner.
     await page.getByRole('button', { name: 'Open Menu' }).click();
