@@ -25,5 +25,13 @@ export default defineConfig({
         baseURL: 'https://www.saucedemo.com',
       },
     },
+    {
+      name: 'toolshop-chromium',
+      testDir: './tests/toolshop',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'https://practicesoftwaretesting.com',
+      },
+    },
   ],
 });
