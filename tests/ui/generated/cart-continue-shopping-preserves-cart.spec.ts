@@ -2,31 +2,33 @@
 // seed: tests/ui/seed.spec.ts
 
 import { test, expect } from '@playwright/test';
+import { LoginPage } from '../../../pages/login.page';
+import { InventoryPage } from '../../../pages/inventory.page';
+import { CartPage } from '../../../pages/cart.page';
 
 test.describe('Cart Page', () => {
   test('Continue Shopping returns to the inventory with the cart preserved', async ({ page }) => {
-    const cartBadge = page.locator('[data-test="shopping-cart-badge"]');
-    const cartItemNames = page.locator('[data-test="inventory-item-name"]');
+    const loginPage = new LoginPage(page);
+    const inventoryPage = new InventoryPage(page);
+    const cartPage = new CartPage(page);
 
-    // 1. Log in with 'standard_user' / 'secret_sauce', add 'Sauce Labs Backpack' to the cart, and open the cart.
-    await page.goto('/');
-    await page.locator('[data-test="username"]').fill('standard_user');
-    await page.locator('[data-test="password"]').fill('secret_sauce');
-    await page.locator('[data-test="login-button"]').click();
-    await page.locator('[data-test="add-to-cart-sauce-labs-backpack"]').click();
-    await page.locator('[data-test="shopping-cart-link"]').click();
+    // 1. Log in, add 'Sauce Labs Backpack' (slug sauce-labs-backpack), and open the cart.
+    await loginPage.goto();
+    await loginPage.login('standard_user', 'secret_sauce');
+    await inventoryPage.addToCart('sauce-labs-backpack');
+    await inventoryPage.openCart();
     // The cart page at '/cart.html' lists 'Sauce Labs Backpack' and the badge shows '1'.
     await expect(page).toHaveURL(/\/cart\.html$/);
-    await expect(cartItemNames).toHaveText(['Sauce Labs Backpack']);
-    await expect(cartBadge).toHaveText('1');
+    await expect(cartPage.itemNames).toHaveText(['Sauce Labs Backpack']);
+    await expect(cartPage.cartBadge).toHaveText('1');
 
     // 2. Click the 'Continue Shopping' button.
-    await page.locator('[data-test="continue-shopping"]').click();
+    await cartPage.continueShopping();
     // The browser navigates back to '/inventory.html'.
     await expect(page).toHaveURL(/\/inventory\.html$/);
     // The cart badge still shows '1' (cart contents are preserved).
-    await expect(cartBadge).toHaveText('1');
+    await expect(inventoryPage.cartBadge).toHaveText('1');
     // The Backpack's button on the inventory page reads 'Remove', confirming it is still in the cart.
-    await expect(page.locator('[data-test="remove-sauce-labs-backpack"]')).toHaveText('Remove');
+    await expect(inventoryPage.removeButton('sauce-labs-backpack')).toHaveText('Remove');
   });
 });

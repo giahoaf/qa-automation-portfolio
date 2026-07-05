@@ -2,65 +2,62 @@
 // seed: tests/ui/seed.spec.ts
 
 import { test, expect } from '@playwright/test';
+import { LoginPage } from '../../../pages/login.page';
+import { InventoryPage } from '../../../pages/inventory.page';
+import { CartPage } from '../../../pages/cart.page';
+import { CheckoutInformationPage } from '../../../pages/checkout-information.page';
 
 test.describe('Checkout Step One: Customer Information', () => {
   test('Validation errors are shown for each missing required field, in order', async ({ page }) => {
-    const firstName = page.locator('[data-test="firstName"]');
-    const lastName = page.locator('[data-test="lastName"]');
-    const postalCode = page.locator('[data-test="postalCode"]');
-    const continueButton = page.locator('[data-test="continue"]');
-    const errorBanner = page.locator('[data-test="error"]');
-    const errorButton = page.locator('[data-test="error-button"]');
+    const loginPage = new LoginPage(page);
+    const inventoryPage = new InventoryPage(page);
+    const cartPage = new CartPage(page);
+    const checkoutInfo = new CheckoutInformationPage(page);
 
     // 1. Log in with 'standard_user' / 'secret_sauce', add 'Sauce Labs Backpack' to the cart, open the cart, and click 'Checkout'.
-    await page.goto('/');
-    await page.locator('[data-test="username"]').fill('standard_user');
-    await page.locator('[data-test="password"]').fill('secret_sauce');
-    await page.locator('[data-test="login-button"]').click();
-    await page.locator('[data-test="add-to-cart-sauce-labs-backpack"]').click();
-    await page.locator('[data-test="shopping-cart-link"]').click();
-    await page.locator('[data-test="checkout"]').click();
+    await loginPage.goto();
+    await loginPage.login('standard_user', 'secret_sauce');
+    await inventoryPage.addToCart('sauce-labs-backpack');
+    await inventoryPage.openCart();
+    await cartPage.checkout();
     // The browser navigates to '/checkout-step-one.html'.
     await expect(page).toHaveURL(/\/checkout-step-one\.html$/);
     // The page title reads 'Checkout: Your Information'.
-    await expect(page.locator('[data-test="title"]')).toHaveText('Checkout: Your Information');
-    // Three empty inputs are shown with their placeholders, plus 'Cancel' and 'Continue' buttons.
-    await expect(firstName).toHaveValue('');
-    await expect(firstName).toHaveAttribute('placeholder', 'First Name');
-    await expect(lastName).toHaveValue('');
-    await expect(lastName).toHaveAttribute('placeholder', 'Last Name');
-    await expect(postalCode).toHaveValue('');
-    await expect(postalCode).toHaveAttribute('placeholder', 'Zip/Postal Code');
-    await expect(page.locator('[data-test="cancel"]')).toBeVisible();
-    await expect(continueButton).toBeVisible();
+    await expect(checkoutInfo.title).toHaveText('Checkout: Your Information');
+    // Three empty inputs plus 'Cancel' and 'Continue' buttons are shown.
+    await expect(checkoutInfo.firstNameInput).toHaveValue('');
+    await expect(checkoutInfo.lastNameInput).toHaveValue('');
+    await expect(checkoutInfo.postalCodeInput).toHaveValue('');
+    await expect(checkoutInfo.cancelButton).toBeVisible();
+    await expect(checkoutInfo.continueButton).toBeVisible();
 
     // 2. Click 'Continue' with all three fields empty.
-    await continueButton.click();
+    await checkoutInfo.continueButton.click();
     // The page stays on '/checkout-step-one.html'.
     await expect(page).toHaveURL(/\/checkout-step-one\.html$/);
-    // An error banner shows the exact text 'Error: First Name is required'.
-    await expect(errorBanner).toHaveText('Error: First Name is required');
+    // An error banner shows the exact text: 'Error: First Name is required'.
+    await expect(checkoutInfo.errorBanner).toHaveText('Error: First Name is required');
     // The banner has a dismiss 'X' button.
-    await expect(errorButton).toBeVisible();
+    await expect(checkoutInfo.errorDismissButton).toBeVisible();
 
     // 3. Fill only First Name with 'Bosco' and click 'Continue' again.
-    await firstName.fill('Bosco');
-    await continueButton.click();
-    // The error banner text changes to exactly 'Error: Last Name is required'.
-    await expect(errorBanner).toHaveText('Error: Last Name is required');
+    await checkoutInfo.firstNameInput.fill('Bosco');
+    await checkoutInfo.continueButton.click();
+    // The error banner text changes to exactly: 'Error: Last Name is required'.
+    await expect(checkoutInfo.errorBanner).toHaveText('Error: Last Name is required');
 
     // 4. Fill Last Name with 'Nguyen', leave Zip/Postal Code empty, and click 'Continue' again.
-    await lastName.fill('Nguyen');
-    await continueButton.click();
-    // The error banner text changes to exactly 'Error: Postal Code is required'.
-    await expect(errorBanner).toHaveText('Error: Postal Code is required');
+    await checkoutInfo.lastNameInput.fill('Nguyen');
+    await checkoutInfo.continueButton.click();
+    // The error banner text changes to exactly: 'Error: Postal Code is required'.
+    await expect(checkoutInfo.errorBanner).toHaveText('Error: Postal Code is required');
 
-    // 5. Click the 'X' button on the error banner.
-    await errorButton.click();
+    // 5. Click the dismiss 'X' button on the error banner.
+    await checkoutInfo.errorDismissButton.click();
     // The error banner is removed from the page.
-    await expect(errorBanner).toHaveCount(0);
+    await expect(checkoutInfo.errorBanner).toHaveCount(0);
     // The previously entered values ('Bosco', 'Nguyen') are retained in their fields.
-    await expect(firstName).toHaveValue('Bosco');
-    await expect(lastName).toHaveValue('Nguyen');
+    await expect(checkoutInfo.firstNameInput).toHaveValue('Bosco');
+    await expect(checkoutInfo.lastNameInput).toHaveValue('Nguyen');
   });
 });

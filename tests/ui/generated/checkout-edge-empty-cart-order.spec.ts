@@ -1,51 +1,56 @@
 // spec: specs/saucedemo-checkout.md
 // seed: tests/ui/seed.spec.ts
-//
-// NOTE: This test intentionally PINS currently-observed quirky behavior of SauceDemo:
-// the app does NOT block checkout for an empty cart and lets a zero-item order be
-// completed (subtotal 'Item total: $0' with no decimals, '$0.00' tax and total).
-// If the product later blocks empty-cart checkout, this test SHOULD fail and be updated.
+
+// CHARACTERIZATION TEST: this intentionally PINS currently-observed quirky behavior —
+// SauceDemo lets you check out with an empty cart and complete a zero-item ($0) order.
+// If the product is later fixed to block empty-cart checkout, this test should fail
+// and be updated to assert the new (blocking) behavior.
 
 import { test, expect } from '@playwright/test';
+import { LoginPage } from '../../../pages/login.page';
+import { InventoryPage } from '../../../pages/inventory.page';
+import { CartPage } from '../../../pages/cart.page';
+import { CheckoutInformationPage } from '../../../pages/checkout-information.page';
+import { CheckoutOverviewPage } from '../../../pages/checkout-overview.page';
+import { CheckoutCompletePage } from '../../../pages/checkout-complete.page';
 
 test.describe('Checkout Edge Cases', () => {
   test('Checkout with an empty cart is permitted and produces a $0 order (known product quirk)', async ({ page }) => {
-    const cartItems = page.locator('[data-test="inventory-item"]');
-    const checkoutButton = page.locator('[data-test="checkout"]');
+    const loginPage = new LoginPage(page);
+    const inventoryPage = new InventoryPage(page);
+    const cartPage = new CartPage(page);
+    const checkoutInfo = new CheckoutInformationPage(page);
+    const checkoutOverview = new CheckoutOverviewPage(page);
+    const checkoutComplete = new CheckoutCompletePage(page);
 
-    // 1. Log in with 'standard_user' / 'secret_sauce' (do NOT add any products) and click the shopping cart link.
-    await page.goto('/');
-    await page.locator('[data-test="username"]').fill('standard_user');
-    await page.locator('[data-test="password"]').fill('secret_sauce');
-    await page.locator('[data-test="login-button"]').click();
-    await page.locator('[data-test="shopping-cart-link"]').click();
+    // 1. Log in with 'standard_user' / 'secret_sauce' (do NOT add any products), and open the cart.
+    await loginPage.goto();
+    await loginPage.login('standard_user', 'secret_sauce');
+    await inventoryPage.openCart();
     // The cart page at '/cart.html' is displayed with zero item rows.
     await expect(page).toHaveURL(/\/cart\.html$/);
-    await expect(cartItems).toHaveCount(0);
-    // The 'Checkout' button is still visible and enabled — the app does not block checkout for an empty cart (documented quirk).
-    await expect(checkoutButton).toBeVisible();
-    await expect(checkoutButton).toBeEnabled();
+    await expect(cartPage.itemRows).toHaveCount(0);
+    // The 'Checkout' button is still visible and enabled — the app does not block empty-cart checkout (quirk).
+    await expect(cartPage.checkoutButton).toBeVisible();
+    await expect(cartPage.checkoutButton).toBeEnabled();
 
-    // 2. Click 'Checkout', then fill the customer form (First Name 'Empty', Last Name 'Cart', Zip/Postal Code '00000') and click 'Continue'.
-    await checkoutButton.click();
-    await page.locator('[data-test="firstName"]').fill('Empty');
-    await page.locator('[data-test="lastName"]').fill('Cart');
-    await page.locator('[data-test="postalCode"]').fill('00000');
-    await page.locator('[data-test="continue"]').click();
-    // The browser reaches '/checkout-step-two.html' with an empty item list.
+    // 2. Click 'Checkout', then submit the customer form (First Name 'Empty', Last Name 'Cart', Zip/Postal Code '00000').
+    await cartPage.checkout();
+    await checkoutInfo.submitInformation('Empty', 'Cart', '00000');
+    // The browser reaches '/checkout-step-two.html' with an empty item list (zero item rows).
     await expect(page).toHaveURL(/\/checkout-step-two\.html$/);
-    await expect(cartItems).toHaveCount(0);
-    // The subtotal reads exactly 'Item total: $0' (note: no decimal places, unlike non-zero subtotals).
-    await expect(page.locator('[data-test="subtotal-label"]')).toHaveText('Item total: $0');
+    await expect(checkoutOverview.itemRows).toHaveCount(0);
+    // The subtotal reads exactly 'Item total: $0' (no decimal places, unlike non-zero subtotals).
+    await expect(checkoutOverview.subtotalLabel).toHaveText('Item total: $0');
     // The tax reads exactly 'Tax: $0.00'.
-    await expect(page.locator('[data-test="tax-label"]')).toHaveText('Tax: $0.00');
+    await expect(checkoutOverview.taxLabel).toHaveText('Tax: $0.00');
     // The total reads exactly 'Total: $0.00'.
-    await expect(page.locator('[data-test="total-label"]')).toHaveText('Total: $0.00');
+    await expect(checkoutOverview.totalLabel).toHaveText('Total: $0.00');
 
     // 3. Click the 'Finish' button.
-    await page.locator('[data-test="finish"]').click();
-    // The browser navigates to '/checkout-complete.html' and shows the heading 'Thank you for your order!' — the app currently allows completing a zero-item order.
+    await checkoutOverview.finish();
+    // The browser navigates to '/checkout-complete.html' and shows the heading 'Thank you for your order!'.
     await expect(page).toHaveURL(/\/checkout-complete\.html$/);
-    await expect(page.locator('[data-test="complete-header"]')).toHaveText('Thank you for your order!');
+    await expect(checkoutComplete.completeHeader).toHaveText('Thank you for your order!');
   });
 });

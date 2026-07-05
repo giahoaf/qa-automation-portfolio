@@ -1,27 +1,27 @@
 import { test, expect } from '@playwright/test';
+import { LoginPage } from '../../pages/login.page';
 
 // SauceDemo is a demo web shop built for practising UI automation:
 // https://www.saucedemo.com (test accounts are listed on the login page)
 
 test.describe('Login', () => {
+  let loginPage: LoginPage;
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    loginPage = new LoginPage(page);
+    await loginPage.goto();
   });
 
   test('standard user can log in', async ({ page }) => {
-    await page.getByPlaceholder('Username').fill('standard_user');
-    await page.getByPlaceholder('Password').fill('secret_sauce');
-    await page.getByRole('button', { name: 'Login' }).click();
+    await loginPage.login('standard_user', 'secret_sauce');
 
     await expect(page).toHaveURL(/inventory\.html/);
     await expect(page.getByText('Products')).toBeVisible();
   });
 
-  test('locked out user sees an error message', async ({ page }) => {
-    await page.getByPlaceholder('Username').fill('locked_out_user');
-    await page.getByPlaceholder('Password').fill('secret_sauce');
-    await page.getByRole('button', { name: 'Login' }).click();
+  test('locked out user sees an error message', async () => {
+    await loginPage.login('locked_out_user', 'secret_sauce');
 
-    await expect(page.locator('[data-test="error"]')).toContainText('locked out');
+    await expect(loginPage.errorBanner).toContainText('locked out');
   });
 });

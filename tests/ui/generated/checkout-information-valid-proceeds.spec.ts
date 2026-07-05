@@ -2,37 +2,39 @@
 // seed: tests/ui/seed.spec.ts
 
 import { test, expect } from '@playwright/test';
+import { LoginPage } from '../../../pages/login.page';
+import { InventoryPage } from '../../../pages/inventory.page';
+import { CartPage } from '../../../pages/cart.page';
+import { CheckoutInformationPage } from '../../../pages/checkout-information.page';
+import { CheckoutOverviewPage } from '../../../pages/checkout-overview.page';
 
 test.describe('Checkout Step One: Customer Information', () => {
   test('Valid customer information proceeds to the order overview', async ({ page }) => {
-    const firstName = page.locator('[data-test="firstName"]');
-    const lastName = page.locator('[data-test="lastName"]');
-    const postalCode = page.locator('[data-test="postalCode"]');
+    const loginPage = new LoginPage(page);
+    const inventoryPage = new InventoryPage(page);
+    const cartPage = new CartPage(page);
+    const checkoutInfo = new CheckoutInformationPage(page);
+    const checkoutOverview = new CheckoutOverviewPage(page);
 
     // 1. Log in with 'standard_user' / 'secret_sauce', add 'Sauce Labs Backpack' to the cart, open the cart, and click 'Checkout'.
-    await page.goto('/');
-    await page.locator('[data-test="username"]').fill('standard_user');
-    await page.locator('[data-test="password"]').fill('secret_sauce');
-    await page.locator('[data-test="login-button"]').click();
-    await page.locator('[data-test="add-to-cart-sauce-labs-backpack"]').click();
-    await page.locator('[data-test="shopping-cart-link"]').click();
-    await page.locator('[data-test="checkout"]').click();
+    await loginPage.goto();
+    await loginPage.login('standard_user', 'secret_sauce');
+    await inventoryPage.addToCart('sauce-labs-backpack');
+    await inventoryPage.openCart();
+    await cartPage.checkout();
     // The checkout information page at '/checkout-step-one.html' is displayed with an empty form.
     await expect(page).toHaveURL(/\/checkout-step-one\.html$/);
-    await expect(firstName).toHaveValue('');
-    await expect(lastName).toHaveValue('');
-    await expect(postalCode).toHaveValue('');
+    await expect(checkoutInfo.firstNameInput).toHaveValue('');
+    await expect(checkoutInfo.lastNameInput).toHaveValue('');
+    await expect(checkoutInfo.postalCodeInput).toHaveValue('');
 
-    // 2. Fill First Name with 'Bosco', Last Name with 'Nguyen', and Zip/Postal Code with '70000', then click 'Continue'.
-    await firstName.fill('Bosco');
-    await lastName.fill('Nguyen');
-    await postalCode.fill('70000');
-    await page.locator('[data-test="continue"]').click();
+    // 2. Submit the customer form with First Name 'Bosco', Last Name 'Nguyen', Zip/Postal Code '70000'.
+    await checkoutInfo.submitInformation('Bosco', 'Nguyen', '70000');
     // No error banner is shown.
-    await expect(page.locator('[data-test="error"]')).toHaveCount(0);
+    await expect(checkoutInfo.errorBanner).toHaveCount(0);
     // The browser navigates to '/checkout-step-two.html'.
     await expect(page).toHaveURL(/\/checkout-step-two\.html$/);
     // The page title reads 'Checkout: Overview'.
-    await expect(page.locator('[data-test="title"]')).toHaveText('Checkout: Overview');
+    await expect(checkoutOverview.title).toHaveText('Checkout: Overview');
   });
 });

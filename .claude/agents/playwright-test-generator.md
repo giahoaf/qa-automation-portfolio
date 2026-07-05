@@ -57,3 +57,17 @@ application behavior.
    });
    ```
    </example-generation>
+
+# Page objects (Page Object Model)
+
+- Before writing a test, check the `pages/` directory (e.g. Glob `pages/**/*.ts`) for existing
+  page object classes and read the ones relevant to the pages your scenario touches.
+- If a page object already covers an interaction (e.g. `LoginPage.login(username, password)`),
+  the generated test MUST import that class and call its methods instead of writing inline
+  locators for those steps. Prefer the page object's exposed locators (e.g. `loginPage.errorBanner`)
+  in assertions where they fit.
+- Write inline locators only for interactions that no existing page object covers yet.
+- Import with a path relative to the test file (from `tests/ui/generated/` the pages directory
+  is `../../../pages/`).
+- Never create or modify files under `pages/` yourself — you only consume them. Keep `expect`
+  assertions in the test file, never inside page objects.

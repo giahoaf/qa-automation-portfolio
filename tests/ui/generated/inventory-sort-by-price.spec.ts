@@ -2,24 +2,25 @@
 // seed: tests/ui/seed.spec.ts
 
 import { test, expect } from '@playwright/test';
+import { LoginPage } from '../../../pages/login.page';
+import { InventoryPage } from '../../../pages/inventory.page';
 
 test.describe('Inventory Browsing', () => {
   test('Sort products by price (low to high)', async ({ page }) => {
-    const sortDropdown = page.locator('[data-test="product-sort-container"]');
-    const productNames = page.locator('[data-test="inventory-item-name"]');
-    const productPrices = page.locator('[data-test="inventory-item-price"]');
+    const loginPage = new LoginPage(page);
+    const inventoryPage = new InventoryPage(page);
 
     // 1. Start from the seed file state and log in with valid credentials
     //    (standard_user / secret_sauce), landing on '/inventory.html'.
-    await page.goto('/');
-    await page.getByRole('textbox', { name: 'Username' }).fill('standard_user');
-    await page.getByRole('textbox', { name: 'Password' }).fill('secret_sauce');
-    await page.getByRole('button', { name: 'Login' }).click();
+    await loginPage.goto();
+    await loginPage.login('standard_user', 'secret_sauce');
     await expect(page).toHaveURL(/\/inventory\.html$/);
 
-    // The product list is displayed in the default 'Name (A to Z)' order.
-    await expect(sortDropdown.locator('option:checked')).toHaveText('Name (A to Z)');
-    await expect(productNames).toHaveText([
+    // The product list is displayed in the default 'Name (A to Z)' order. This
+    // default value is set by the app (not by a Playwright action), so asserting
+    // it establishes the baseline the following re-sorts must change.
+    await expect(inventoryPage.sortDropdown).toHaveValue('az');
+    await expect(inventoryPage.itemNames).toHaveText([
       'Sauce Labs Backpack',
       'Sauce Labs Bike Light',
       'Sauce Labs Bolt T-Shirt',
@@ -28,14 +29,11 @@ test.describe('Inventory Browsing', () => {
       'Test.allTheThings() T-Shirt (Red)',
     ]);
 
-    // 2. Select the option 'Price (low to high)' (value 'lohi') from the sort dropdown.
-    await sortDropdown.selectOption('lohi');
-
-    // The dropdown now displays 'Price (low to high)' as the selected value.
-    await expect(sortDropdown.locator('option:checked')).toHaveText('Price (low to high)');
+    // 2. Select 'Price (low to high)' (value 'lohi') from the sort dropdown.
+    await inventoryPage.sortBy('lohi');
 
     // The product list re-renders in ascending price order.
-    await expect(productNames).toHaveText([
+    await expect(inventoryPage.itemNames).toHaveText([
       'Sauce Labs Onesie',
       'Sauce Labs Bike Light',
       'Sauce Labs Bolt T-Shirt',
@@ -43,7 +41,7 @@ test.describe('Inventory Browsing', () => {
       'Sauce Labs Backpack',
       'Sauce Labs Fleece Jacket',
     ]);
-    await expect(productPrices).toHaveText([
+    await expect(inventoryPage.itemPrices).toHaveText([
       '$7.99',
       '$9.99',
       '$15.99',
@@ -52,12 +50,15 @@ test.describe('Inventory Browsing', () => {
       '$49.99',
     ]);
 
-    // 3. Select the option 'Price (high to low)' (value 'hilo') from the same sort dropdown.
-    await sortDropdown.selectOption('hilo');
+    // 3. Select 'Price (high to low)' (value 'hilo') from the same dropdown.
+    await inventoryPage.sortBy('hilo');
 
-    // The product list re-renders in descending price order: Sauce Labs Fleece
-    // Jacket ($49.99) first and Sauce Labs Onesie ($7.99) last.
-    await expect(productNames).toHaveText([
+    // The list re-renders in descending price order. Characterization: the sort
+    // is stable, so the two equal-priced $15.99 items keep their low-to-high
+    // relative order (Sauce Labs Bolt T-Shirt before Test.allTheThings() T-Shirt
+    // (Red)) rather than reversing. This order was verified live, so we assert
+    // the observed order instead of a naive reverse of the ascending list.
+    await expect(inventoryPage.itemNames).toHaveText([
       'Sauce Labs Fleece Jacket',
       'Sauce Labs Backpack',
       'Sauce Labs Bolt T-Shirt',
@@ -65,7 +66,7 @@ test.describe('Inventory Browsing', () => {
       'Sauce Labs Bike Light',
       'Sauce Labs Onesie',
     ]);
-    await expect(productPrices).toHaveText([
+    await expect(inventoryPage.itemPrices).toHaveText([
       '$49.99',
       '$29.99',
       '$15.99',
